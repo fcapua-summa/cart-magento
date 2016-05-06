@@ -8,6 +8,49 @@ class MercadoPago_Core_Model_Standard_Ipn
 {
     const LOG_FILE = 'mercadopago-notification.log';
 
+    protected $_finalStatus = ['rejected', 'cancelled', 'refunded', 'charge_back'];
+    protected $_notFinalStatus = ['authorized', 'process', 'in_mediation'];
+
+    protected function _getDataPayments($merchantOrder)
+    {
+        $data = [];
+        $core = Mage::getModel('mercadopago/core');
+        foreach ($merchantOrder['payments'] as $payment) {
+            $response = $core->getPayment($payment['id']);
+            $payment = $response['response']['collection'];
+            $data = $this->_formatArrayPayment($data, $payment);
+        }
+        return $data;
+    }
+
+    protected function _dateCompare($a, $b)
+    {
+        $t1 = strtotime($a['value']);
+        $t2 = strtotime($b['value']);
+        return $t2 - $t1;
+    }
+
+    /**
+     * @param $payments
+     * @param $status
+     *
+     * @return int
+     */
+    protected function _getLastPaymentIndex($payments, $status)
+    {
+        $dates = [];
+        foreach ($payments as $key => $payment) {
+            if (in_array($payment['status'], $status)) {
+                $dates[] = ['key' => $key, 'value' => $payment['last_modified']];
+            }
+        }
+        usort($dates, [get_class($this), "_dateCompare"]);
+        if ($dates) {
+            $lastModified = array_pop($dates);
+            return $lastModified['key'];
+        }
+        return 0;
+    }
 
     protected function _formatArrayPayment($data, $payment)
     {
@@ -64,36 +107,22 @@ class MercadoPago_Core_Model_Standard_Ipn
         return $data;
     }
 
-    protected function _getDataPayments($merchantOrder)
-    {
-        $data = [];
-        /** @var MercadoPago_Core_Model_Core $mpCore */
-        $mpCore = Mage::getModel('mercadopago/core');
-        foreach ($merchantOrder['payments'] as $payment) {
-            $response = $mpCore->getPayment($payment['id']);
-            $payment = $response['response']['collection'];
-            $data = $this->_formatArrayPayment($data, $payment);
-        }
-
-        return $data;
-    }
-
     protected function _getStatusFinal($dataStatus)
     {
-        $status_final = "";
+        if ($dataStatus['total_amount'] == $dataStatus['paid_amount']) {
+            return 'approved';
+        }
+        $payments = $dataStatus['payments'];
         $statuses = explode('|', $dataStatus);
         foreach ($statuses as $status) {
             $status = str_replace(' ', '', $status);
-            if ($status_final == "") {
-                $status_final = $status;
-            } else {
-                if ($status_final != $status) {
-                    $status_final = false;
-                }
+            if (in_array($status, $this->_notFinalStatus)) {
+                $lastPaymentIndex = $this->_getLastPaymentIndex($payments, $this->_notFinalStatus);
+                return $payments[$lastPaymentIndex]['status'];
             }
         }
-
-        return $status_final;
+        $lastPaymentIndex = $this->_getLastPaymentIndex($payments, $this->_finalStatus);
+        return $payments[$lastPaymentIndex]['status'];
     }
 
     public function validateData($data)
@@ -139,15 +168,16 @@ class MercadoPago_Core_Model_Standard_Ipn
 
 
         if (count($data['payments']) > 0) {
-            $paymentsData = $this->_getDataPayments($data);
+            $data = $this->_getDataPayments($data);
+            $status_final = $this->getStatusFinal($data['status'], $data);
+            $shipmentData = (isset($data['shipments'][0])) ? $data['shipments'][0] : [];
             $this->getHelper()->log("Update Order", self::LOG_FILE);
-            $this->getHelper()->setStatusUpdated($paymentsData);
+            $this->getHelper()->setStatusUpdated($data);
 
             /** @var MercadoPago_Core_Model_Core $mpCore */
             $mpCore = Mage::getModel('mercadopago/core');
-            $mpCore->updateOrder($paymentsData);
+            $mpCore->updateOrder($data);
 
-            $shipmentData = (isset($data['shipments'][0])) ? $data['shipments'][0] : [];
             if (!empty($shipmentData)) {
                 Mage::dispatchEvent('mercadopago_standard_notification_before_set_status',
                     [
@@ -156,22 +186,19 @@ class MercadoPago_Core_Model_Standard_Ipn
                     ]
                 );
             }
-
-            $statusFinal = $this->_getStatusFinal($paymentsData['status']);
-            if ($statusFinal != false) {
-                $paymentsData['status_final'] = $statusFinal;
-                $this->getHelper()->log("Received Payment data", self::LOG_FILE, $paymentsData);
-                $response = $mpCore->setStatusOrder($paymentsData);
+            if ($status_final != false) {
+                $data['status_final'] = $status_final;
+                $this->getHelper()->log("Received Payment data", self::LOG_FILE, $data);
+                $response = $mpCore->setStatusOrder($data);
             } else {
                 $response = [
                     'text' => 'Status not final',
                     'code' => MercadoPago_Core_Helper_Response::HTTP_OK
-                ];
+                    ];
             }
-
             Mage::dispatchEvent('mercadopago_standard_notification_received',
                 [
-                    'payment' => $paymentsData,
+                    'payment' => $data,
                     'merchant_order' => $data
                 ]
             );
