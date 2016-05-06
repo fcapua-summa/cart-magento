@@ -31,13 +31,10 @@ class MercadoPago_Core_Block_Custom_Form
     public function getCardsPaymentMethods()
     {
         $payment_methods = Mage::getModel('mercadopago/core')->getPaymentMethods();
-        $payment_methods_types = array("credit_card", "debit_card", "prepaid_card");
-        $types = array();
+        $payment_methods_types = ["credit_card", "debit_card", "prepaid_card"];
+        $types = [];
 
-        //percorre todos os payments methods
         foreach ($payment_methods['response'] as $pm) {
-
-            //filtra por payment_methods
             if (in_array($pm['payment_type_id'], $payment_methods_types)) {
                 $types[] = $pm;
             }

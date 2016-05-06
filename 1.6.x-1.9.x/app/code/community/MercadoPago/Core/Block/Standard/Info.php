@@ -32,9 +32,11 @@ class MercadoPago_Core_Block_Standard_Info
 
     public function getInfoPayment()
     {
-        $order_id = $this->getInfo()->getOrder()->getIncrementId();
-        $info_payments = Mage::getModel('mercadopago/core')->getInfoPaymentByOrder($order_id);
+        $orderId = $this->getInfo()->getOrder()->getIncrementId();
+        /** @var MercadoPago_Core_Model_Core $mpModel */
+        $mpModel = Mage::getModel('mercadopago/core');
+        $infoPayments = $mpModel->getInfoPaymentByOrder($orderId);
 
-        return $info_payments;
+        return $infoPayments;
     }
 }

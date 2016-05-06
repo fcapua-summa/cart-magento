@@ -21,7 +21,6 @@ class MercadoPago_Core_Block_Standard_Pay
     protected function _construct()
     {
         parent::_construct();
-
         $this->setTemplate('mercadopago/standard/pay.phtml');
     }
 }

@@ -21,19 +21,17 @@ class MercadoPago_Core_Block_Customticket_Form
     protected function _construct()
     {
         parent::_construct();
-
         $this->setTemplate('mercadopago/custom_ticket/form.phtml');
     }
 
     public function getTicketsOptions()
     {
-        $payment_methods = Mage::getModel('mercadopago/core')->getPaymentMethods();
-        $tickets = array();
+        /** @var MercadoPago_Core_Model_Core $paymentMethods */
+        $mpModel= Mage::getModel('mercadopago/core');
+        $paymentMethods = $mpModel->getPaymentMethods();
+        $tickets = [];
 
-        //percorre todos os payments methods
-        foreach ($payment_methods['response'] as $pm) {
-
-            //filtra por tickets
+        foreach ($paymentMethods['response'] as $pm) {
             if ($pm['payment_type_id'] == "ticket") {
                 $tickets[] = $pm;
             }

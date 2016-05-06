@@ -36,20 +36,20 @@ class MercadoPago_Core_ApiController
 
     public function couponAction()
     {
-        $response = array();
-        $core = Mage::getModel('mercadopago/core');
+        /** @var MercadoPago_Core_Model_Core $mpCore */
+        $mpCore = Mage::getModel('mercadopago/core');
 
-        $coupon_id = $this->getRequest()->getParam('id');
-        if (!empty($coupon_id)) {
-            $response = $core->validCoupon($coupon_id);
+        $couponId = $this->getRequest()->getParam('id');
+        if (!empty($couponId)) {
+            $response = $mpCore->validCoupon($couponId);
         } else {
-            $response = array(
+            $response = [
                 "status"   => 400,
-                "response" => array(
+                "response" => [
                     "error"   => "invalid_id",
                     "message" => "invalid id"
-                )
-            );
+                ]
+            ];
         }
 
         $jsonData = Mage::helper('core')->jsonEncode($response);
@@ -66,14 +66,14 @@ class MercadoPago_Core_ApiController
 
     public function testAction()
     {
-        $core = Mage::getModel('mercadopago/core');
+        $mpCore = Mage::getModel('mercadopago/core');
 
-        $payment_methods = $core->getPaymentMethods();
+        $paymentMethods = $mpCore->getPaymentMethods();
 
-        $response = array(
-            "getPaymentMethods" => $payment_methods['status'],
+        $response = [
+            "getPaymentMethods" => $paymentMethods['status'],
             "public_key"        => Mage::getStoreConfig('payment/mercadopago_custom/public_key')
-        );
+        ];
 
         $jsonData = Mage::helper('core')->jsonEncode($response);
         $this->getResponse()->setHeader('Content-type', 'application/json');

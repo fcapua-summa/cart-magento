@@ -14,7 +14,8 @@ class MercadoPago_Core_Block_AbstractSuccess
 
     public function getOrder()
     {
-        $orderIncrementId = Mage::getSingleton('checkout/session')->getLastRealOrderId();
+        $orderIncrementId = $this->getOrderIncrementId();
+        /** @var Mage_Sales_Model_Order $order */
         $order = Mage::getModel('sales/order')->loadByIncrementId($orderIncrementId);
 
         return $order;
@@ -41,6 +42,12 @@ class MercadoPago_Core_Block_AbstractSuccess
         return $order->getEntityId();
     }
 
+    public function getOrderIncrementId()
+    {
+        return Mage::getSingleton('checkout/session')->getLastRealOrderId();
+    }
+
+
     public function getPaymentMethod()
     {
         $payment_method = $this->getPayment()->getMethodInstance()->getCode();
@@ -50,14 +57,18 @@ class MercadoPago_Core_Block_AbstractSuccess
 
     public function getInfoPayment()
     {
-        $order_id = Mage::getSingleton('checkout/session')->getLastRealOrderId();
-        $info_payments = Mage::getModel('mercadopago/core')->getInfoPaymentByOrder($order_id);
+        $orderIncrementId = $this->getOrderIncrementId();
+        /** @var MercadoPago_Core_Model_Core $mpModel */
+        $mpModel = Mage::getModel('mercadopago/core');
+        $infoPayments = $mpModel->getInfoPaymentByOrder($orderIncrementId);
 
-        return $info_payments;
+        return $infoPayments;
     }
 
     public function getMessageByStatus($status, $status_detail, $payment_method, $amount, $installment)
     {
-        return Mage::getModel('mercadopago/core')->getMessageByStatus($status, $status_detail, $payment_method, $amount, $installment);
+        /** @var MercadoPago_Core_Model_Core $mpCore */
+        $mpCore = Mage::getModel('mercadopago/core');
+        return $mpCore->getMessageByStatus($status, $status_detail, $payment_method, $amount, $installment);
     }
 }

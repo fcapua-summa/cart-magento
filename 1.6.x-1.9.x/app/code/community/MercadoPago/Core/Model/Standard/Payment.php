@@ -38,7 +38,6 @@ class MercadoPago_Core_Model_Standard_Payment
 
     public function postPago()
     {
-        //get mercadopago api instance
         $client_id = Mage::getStoreConfig(MercadoPago_Core_Helper_Data::XML_PATH_CLIENT_ID);
         $client_secret = Mage::getStoreConfig(MercadoPago_Core_Helper_Data::XML_PATH_CLIENT_SECRET);
         $mp = Mage::helper('mercadopago')->getApiInstance($client_id, $client_secret);

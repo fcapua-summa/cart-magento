@@ -8,7 +8,6 @@ class MercadoPago_Core_Block_AbstractForm
 
         $public_key = Mage::getStoreConfig(MercadoPago_Core_Helper_Data::XML_PATH_PUBLIC_KEY);
 
-        //init js no header
         $block = Mage::app()->getLayout()->createBlock('core/text', 'js_mercadopago');
         $block->setText(
             sprintf(
@@ -25,7 +24,6 @@ class MercadoPago_Core_Block_AbstractForm
         );
 
         $head = Mage::app()->getLayout()->getBlock('after_body_start');
-
         if ($head) {
             $head->append($block);
         }
